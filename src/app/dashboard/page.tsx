@@ -1,6 +1,6 @@
 "use client"
 
-import { Alert, Box, Button, ButtonGroup, Steps } from "@chakra-ui/react"
+import { Alert, Box, Button, ButtonGroup, Steps, Spinner, VStack, Text } from "@chakra-ui/react"
 import { ReactNode, useEffect, useState } from "react"
 import { useBreakpointValue } from "@chakra-ui/react";
 import { Code, Menu, Portal, Stack } from "@chakra-ui/react"
@@ -48,12 +48,13 @@ const resumeSteps: ResumeStepType = {
 }
 const ResumeStepsDesktop = () => {
     const [step, setStep] = useState(1)
-    const { activeStep, completedSteps } = useAppSelector((state) => state.globalInfo)
+    const [showLoader, setShowLoader] = useState(false);
+    const { activeStep, userId } = useAppSelector((state) => state.globalInfo)
     const { name, email, phone, role, error } = useAppSelector((state) => state.personalInfo)
     const { experience, techSkills, summary } = useAppSelector((state) => state.summarySlice)
     const { skills } = useAppSelector((state) => state.skillSlice)
     const experienceSlice = useAppSelector((state) => state.experienceSlice)
-    const { educations } = useAppSelector((state) => state.educationSlice)
+    const { educations, languages } = useAppSelector((state) => state.educationSlice)
 
     const [showAlert, setShowAlert] = useState(false)
     const dispatch = useAppDispatch();
@@ -90,24 +91,52 @@ const ResumeStepsDesktop = () => {
         }
         return false;
     }
+    const saveResume = async (e:{step:number;},noChange:boolean) => {
+        let experiences = experienceSlice.experience
+        setShowLoader(true)
+        const response = await fetch("api/resume/saveResume", {
+            method: "POST",
+            body: JSON.stringify({
+                userId: userId,
+                content: {
+                    name, email, phone, role, location,
+                    experience, techSkills, summary,
+                    skills,
+                    experiences,
+                    educations, languages
+                },
+                resumeFormat:"1"
+            })
+        })
+        setShowLoader(false)
+        if (response?.status === 200 && !noChange) {
+            setStep(e.step)
+            console.log("man=", e.step, steps.find((s, i) => i + 1 === e.step))
+            let title = steps.find((s, i) => i + 1 === e.step)?.title || "Profile";
+            dispatch(setActiveStep(title))
+            setShowAlert(false)
+        } else {
+            if(response?.status !== 200)setShowAlert(true)
+        }
+    }
     useEffect(() => {
         let index = steps.findIndex((s) => s.title === activeStep)
         if (index + 1 !== step) {
             setStep(index + 1)
         }
-    }, [activeStep])
+        if(activeStep === "education" && educations.length >0 && languages.length>0){
+            saveResume({step:1},true)
+        }
+    }, [activeStep,educations,languages])
     return (
-        <Box bg="#558f64" w="100%" minH="100dvh">
+        <Box bg="#558f64" w="100%" minH="100dvh" position={'relative'}>
+            {showLoader && <Loader />}
             <Box display={"flex"} flexDirection={'row'}>
                 <Steps.Root
                     step={step}
                     onStepChange={(e) => {
                         if (handleChange() || e.step < step) {
-                            setStep(e.step)
-                            console.log("man=", e.step, steps.find((s, i) => i + 1 === e.step))
-                            let title = steps.find((s, i) => i + 1 === e.step)?.title || "Profile";
-                            dispatch(setActiveStep(title))
-                            setShowAlert(false)
+                            saveResume(e,false)
                         } else {
                             setShowAlert(true)
                         }
@@ -158,37 +187,66 @@ const ResumeStepsDesktop = () => {
 }
 const ResumeStepsMobile = () => {
     const [open, setOpen] = useState(false);
-    const { activeStep, completedSteps } = useAppSelector((state) => state.globalInfo)
+    const { activeStep, userId } = useAppSelector((state) => state.globalInfo)
     const { name, email, phone, role, error } = useAppSelector((state) => state.personalInfo)
     const { experience, techSkills, summary } = useAppSelector((state) => state.summarySlice)
     const { skills } = useAppSelector((state) => state.skillSlice)
     const experienceSlice = useAppSelector((state) => state.experienceSlice)
-    const { educations,languages } = useAppSelector((state) => state.educationSlice)
-    const [showResume,setShowResume] = useState(false)
+    const { educations, languages } = useAppSelector((state) => state.educationSlice)
+    const [showResume, setShowResume] = useState(false)
     const [showAlert, setShowAlert] = useState(false)
+    const [showLoader, setShowLoader] = useState(false);
+
     const dispatch = useAppDispatch();
+    const saveResume = async() =>{
+        let experiences = experienceSlice.experience
+        setShowLoader(true)
+        const response = await fetch("api/resume/saveResume", {
+            method: "POST",
+            body: JSON.stringify({
+                userId: userId,
+                content: {
+                    name, email, phone, role, location,
+                    experience, techSkills, summary,
+                    skills,
+                    experiences,
+                    educations, languages
+                },
+                resumeFormat:"1"
+            })
+        })
+        setShowLoader(false)
+    }
+    const handleBack =():void =>{
+        let index = steps.findIndex((s) => s.title === activeStep)
+        dispatch(setActiveStep(steps[index - 1]?.title))
+        setShowAlert(false)
+    }
     const handleChange = (): void => {
-        let index = steps.findIndex((s)=>s.title === activeStep)
+        let index = steps.findIndex((s) => s.title === activeStep)
         if (activeStep === "Profile") {
             if (name && email && phone && role && Object.values(error).every((v) => v === false)) {
-                dispatch(setActiveStep(steps[index+1]?.title))
+                dispatch(setActiveStep(steps[index + 1]?.title))
                 setShowAlert(false)
+                saveResume()
             } else {
                 setShowAlert(true)
             }
         }
         if (activeStep === "summary") {
             if (experience && techSkills && techSkills?.length > 0 && summary) {
-                dispatch(setActiveStep(steps[index+1]?.title))
+                dispatch(setActiveStep(steps[index + 1]?.title))
                 setShowAlert(false)
+                saveResume()
             } else {
                 setShowAlert(true)
             }
         }
         if (activeStep === 'skills') {
             if (skills.length > 0) {
-                dispatch(setActiveStep(steps[index+1]?.title))
+                dispatch(setActiveStep(steps[index + 1]?.title))
                 setShowAlert(false)
+                saveResume()
             } else {
                 setShowAlert(true)
             }
@@ -197,58 +255,69 @@ const ResumeStepsMobile = () => {
             let expFlag = experienceSlice.experience.some((exp) => Object.values(exp).every((v) => v !== "" && v !== undefined))
             let errFlag = experienceSlice.error.every((exp) => Object.values(exp).every((v) => v === false))
             if (expFlag && errFlag) {
-                dispatch(setActiveStep(steps[index+1]?.title))
+                dispatch(setActiveStep(steps[index + 1]?.title))
                 setShowAlert(false)
+                saveResume()
             } else {
+                setShowAlert(true)
+            }
+        }
+        if (activeStep === 'education') {
+            if(languages.length >0 && educations.length > 0){
+                setShowAlert(false)
+                saveResume()
+            }else {
                 setShowAlert(true)
             }
         }
     }
     return (
-        <Box m={5}>
-            <Button onClick={()=>setShowResume(!showResume)} mt={2} mb={2}>{!showResume?"Preview Resume":"Go Back"}</Button>
-            {!showResume?<>
-            <Stack gap="4" align="flex-start">
-                <Code>Current Section: {activeStep}</Code>
-                <Menu.Root open={open} onOpenChange={(e) => setOpen(e.open)}>
-                    <Menu.Trigger asChild>
-                        <Button variant="outline" size="sm" width={'full'}>
-                            {activeStep}
-                        </Button>
-                    </Menu.Trigger>
-                    <Portal>
-                        <Menu.Positioner w="full" p={3}>
-                            <Menu.Content w="full">
-                                {steps.map((t) => (
-                                    <Menu.Item
-                                        value={t.title}
-                                        display="flex"
-                                        justifyContent="space-between"
-                                        alignItems="center"
-                                        key={t.title}
-                                        onClick={() => dispatch(setActiveStep(t.title))}
-                                    >
-                                        {t.title} {activeStep === t.title ? <EditIcon size="sm" /> : ""}
-                                    </Menu.Item>))}
-                            </Menu.Content>
-                        </Menu.Positioner>
-                    </Portal>
-                </Menu.Root>
-            </Stack>
-            {showAlert &&
-                        <Alert.Root status="error" mt={3}>
-                            <Alert.Indicator />
-                            <Alert.Title>There was an error processing your request</Alert.Title>
-                        </Alert.Root>}
-            {resumeSteps[activeStep] ? resumeSteps[activeStep] : <></>}
-            {educations.length > 0 ? 
-                        <Alert.Root status="success" mt={3}>
-                            <Alert.Indicator />
-                            <Alert.Title>All Done!</Alert.Title>
-                        </Alert.Root> : <></>}
-            </>:<ResumePreview/>}
-            <Box mt={3}>
-                <Button onClick={()=>handleChange()}>Save</Button>
+        <Box m={5} position={'relative'}>
+            {showLoader && <Loader />}
+            <Button onClick={() => setShowResume(!showResume)} mt={2} mb={2}>{!showResume ? "Preview Resume" : "Go Back"}</Button>
+            {!showResume ? <>
+                <Stack gap="4" align="flex-start">
+                    <Code>Current Section: {activeStep}</Code>
+                    <Menu.Root open={open} onOpenChange={(e) => setOpen(e.open)}>
+                        <Menu.Trigger asChild>
+                            <Button variant="outline" size="sm" width={'full'}>
+                                {activeStep}
+                            </Button>
+                        </Menu.Trigger>
+                        <Portal>
+                            <Menu.Positioner w="full" p={3}>
+                                <Menu.Content w="full">
+                                    {steps.map((t) => (
+                                        <Menu.Item
+                                            value={t.title}
+                                            display="flex"
+                                            justifyContent="space-between"
+                                            alignItems="center"
+                                            key={t.title}
+                                            onClick={() => dispatch(setActiveStep(t.title))}
+                                        >
+                                            {t.title} {activeStep === t.title ? <EditIcon size="sm" /> : ""}
+                                        </Menu.Item>))}
+                                </Menu.Content>
+                            </Menu.Positioner>
+                        </Portal>
+                    </Menu.Root>
+                </Stack>
+                {showAlert &&
+                    <Alert.Root status="error" mt={3}>
+                        <Alert.Indicator />
+                        <Alert.Title>There was an error processing your request</Alert.Title>
+                    </Alert.Root>}
+                {resumeSteps[activeStep] ? resumeSteps[activeStep] : <></>}
+                {educations.length > 0 ?
+                    <Alert.Root status="success" mt={3}>
+                        <Alert.Indicator />
+                        <Alert.Title>All Done!</Alert.Title>
+                    </Alert.Root> : <></>}
+            </> : <ResumePreview />}
+            <Box mt={3} display={'flex'} gap={'3'}>
+                <Button onClick={() => handleBack()} disabled={activeStep === "Profile"}>Back</Button>
+                <Button onClick={() => handleChange()}>Save</Button>
             </Box>
         </Box>
     )
@@ -266,3 +335,22 @@ const ResumeSteps = () => {
 }
 export default ResumeSteps;
 
+
+const Loader = () => {
+    return (
+        <VStack 
+            position="fixed"
+            top="0"
+            left="0"
+            width="100vw"
+            height="100vh"
+            bg="bg/80"
+            justify="center"
+            align="center"
+            zIndex="overlay"
+        >
+            <Spinner color="colorPalette.600" />
+            <Text color="colorPalette.600">Loading...</Text>
+        </VStack>
+    )
+}

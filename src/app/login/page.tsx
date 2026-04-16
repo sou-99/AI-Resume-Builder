@@ -7,11 +7,14 @@ import { PasswordInput } from "@/src/components/ui/password-input"
 import { redirect } from "next/navigation"
 import NextLink from "next/link";
 import { Link } from "@chakra-ui/react";
+import { useAppDispatch } from "@/src/store/hooks"
+import { setLoggedInUser } from "@/src/store/slices/globalSlice"
 
 export default function LoginPage() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [error, setError] = useState({ email: false, pwd: false, invalidUser: false })
+  const diapatch = useAppDispatch()
   const handleLogin = async (e: any) => {
     e.preventDefault()
     if (email && password) {
@@ -24,6 +27,7 @@ export default function LoginPage() {
       if (res?.error) {
         setError({ email: true, pwd: true, invalidUser: true })
       } else {
+        diapatch(setLoggedInUser(email))
         redirect("/dashboard")
         //window.location.href = "/dashboard"
       }

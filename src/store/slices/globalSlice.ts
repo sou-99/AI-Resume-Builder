@@ -1,11 +1,13 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 interface initialStateType{
     activeStep: string;
-    completedSteps:string[]
+    completedSteps:string[];
+    userId:string
 }
 const initialState:initialStateType = {
         activeStep:"Profile",
-        completedSteps:[]
+        completedSteps:[],
+        userId:""
     }
 const globalSlice = createSlice({
     name:"globalSlice",
@@ -16,9 +18,12 @@ const globalSlice = createSlice({
         },
         setCompletedSteps: (state,action:PayloadAction<string>)=>{
             state.completedSteps = [...state.completedSteps,action.payload]
+        },
+        setLoggedInUser: (state,action:PayloadAction<string>) => {
+            state.userId=action.payload
         }
     }
 })
 
-export const {setActiveStep,setCompletedSteps} = globalSlice.actions;
+export const {setActiveStep,setCompletedSteps,setLoggedInUser} = globalSlice.actions;
 export default globalSlice.reducer;
