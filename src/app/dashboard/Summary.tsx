@@ -113,7 +113,7 @@ export default function Summary() {
                 </GridItem>
                 <GridItem colSpan={{ base: 2, md: 1 }}>
                     <Text marginBottom={2}>Add skills:<Em>(max 5)</Em></Text>
-                    <SkillsInput skill={skill} skills={skills} setSkill={setSkill} setSkills={setSkills} techSkills={techSkills} analyticalSkills={analyticalSkills} setTechSkills={setTechSkills} />
+                    <SkillsInput skill={skill} skills={skills} setSkill={setSkill} setSkills={setSkills} techSkills={techSkills} analyticalSkills={analyticalSkills} />
                 </GridItem>
                 <GridItem colSpan={{ base: 2, md: 1 }}>
                     <Button onClick={generateSummary} disabled={!experience || techSkills.length===0}>
