@@ -129,7 +129,7 @@ const ResumePreview = () => {
                     <GridItem colSpan={1}>
                         {educations.length > 0 && <Heading size="lg" mb={3}>EDUCATION</Heading>}
                         {educations.map((e) => (
-                                <Box display={'flex'} mb={2} gap={2}>
+                                <Box display={'flex'} mb={2} gap={2} key={e.university}>
                                     <Text fontWeight={'bold'}>{e.education + " - "}</Text>
                                     <Box>
                                         <Box display={'flex'} flexDirection={'column'}>
@@ -150,7 +150,7 @@ const ResumePreview = () => {
                         {languages.length > 0 && <Heading size="lg" mb={3}>LANGUAGES</Heading>}
                         {languages.length > 0 && <Box as={'ul'} display={'flex'} gap={2} flexDirection={'row'}>
                             {languages.map((e) => (
-                                <Box as={'li'}>{e}</Box>
+                                <Box as={'li'} key={e}>{e}</Box>
                             ))}
                         </Box>}
                     </GridItem>}

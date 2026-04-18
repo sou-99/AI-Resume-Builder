@@ -123,7 +123,7 @@ const Experience = () => {
         <Box mt={10}>
             <Text mb={2}>Briefly add all your work experiences. Click on Add to add more experience if any.</Text>
             <Grid templateColumns={{ base: "1fr", md: "1fr 1fr" }} gap={6}>
-                {experience.map((item: expType, i: number) => <ExpForm item={item} error={error[i]} handleChangeDate={handleChangeDate} handleChange={handleChange} index={i} generateSummary={generateSummary} deleteExperience={deleteExperience}/>)}
+                {experience.map((item: expType, i: number) => <ExpForm item={item} error={error[i]} handleChangeDate={handleChangeDate} handleChange={handleChange} index={i} generateSummary={generateSummary} deleteExperience={deleteExperience} key={item?.companyName}/>)}
                 <GridItem colSpan={{ base: 2, md: 2 }}>
                     <Button mb={2} float={'right'} mr={3} onClick={()=>addExperience()}>Add Experience</Button>
                 </GridItem>
@@ -291,45 +291,84 @@ const ExpForm = (props: propsType) => {
 }
 
 
+const toValidCalendarArray = (val: any): DateValue[] => {
+    if (!val) return [];
+  
+    // ✅ CASE 1: string "2025-01-01"
+    if (typeof val === "string") {
+      try {
+        return [parseDate(val)];
+      } catch {
+        return [];
+      }
+    }
+  
+    // ✅ CASE 2: already array
+    if (Array.isArray(val) && val[0]) {
+      const d = val[0];
+  
+      // already correct
+      if (d instanceof CalendarDate) return val;
+  
+      // plain object → convert
+      if (
+        typeof d.year === "number" &&
+        typeof d.month === "number" &&
+        typeof d.day === "number"
+      ) {
+        return [new CalendarDate(d.year, d.month, d.day)];
+      }
+    }
+  
+    return [];
+  };
+
 const DateSelector = (props: calenderPropsType) => {
-    const { label, value, handleChangeDate, name, index } = props;
-    return (
-        <DatePicker.Root
-            format={format}
-            parse={parse}
-            defaultView="month"
-            minView="month"
-            placeholder="mm/yyyy"
-            maxWidth="20rem"
-            value={value}
-            onValueChange={(e) => handleChangeDate(name, e.value, index)}
-        >
-            <DatePicker.Label>{label}</DatePicker.Label>
-            <DatePicker.Control>
-                <DatePicker.Input />
-                <DatePicker.IndicatorGroup>
-                    <DatePicker.Trigger>
-                        <LuCalendar />
-                    </DatePicker.Trigger>
-                </DatePicker.IndicatorGroup>
-            </DatePicker.Control>
-            <Portal>
-                <DatePicker.Positioner>
-                    <DatePicker.Content>
-                        <DatePicker.View view="month">
-                            <DatePicker.Header />
-                            <DatePicker.MonthTable />
-                        </DatePicker.View>
-                        <DatePicker.View view="year">
-                            <DatePicker.Header />
-                            <DatePicker.YearTable />
-                        </DatePicker.View>
-                    </DatePicker.Content>
-                </DatePicker.Positioner>
-            </Portal>
-        </DatePicker.Root>
-    )
-}
+  const { label, value, handleChangeDate, name, index } = props;
+
+  const safeValue = toValidCalendarArray(value);
+
+  return (
+    <DatePicker.Root
+      format={format}
+      parse={parse}
+      defaultView="month"
+      minView="month"
+      placeholder="mm/yyyy"
+      maxWidth="20rem"
+      value={toValidCalendarArray(value)}
+      onValueChange={(e) =>
+        handleChangeDate(name, e.value ?? [], index)
+      }
+    >
+      <DatePicker.Label>{label}</DatePicker.Label>
+
+      <DatePicker.Control>
+        <DatePicker.Input />
+        <DatePicker.IndicatorGroup>
+          <DatePicker.Trigger>
+            <LuCalendar />
+          </DatePicker.Trigger>
+        </DatePicker.IndicatorGroup>
+      </DatePicker.Control>
+
+      <Portal>
+        <DatePicker.Positioner>
+          <DatePicker.Content>
+            <DatePicker.View view="month">
+              <DatePicker.Header />
+              <DatePicker.MonthTable />
+            </DatePicker.View>
+            <DatePicker.View view="year">
+              <DatePicker.Header />
+              <DatePicker.YearTable />
+            </DatePicker.View>
+          </DatePicker.Content>
+        </DatePicker.Positioner>
+      </Portal>
+    </DatePicker.Root>
+  );
+};
 
 const format = (date: DateValue) => {
     const month = date.month.toString().padStart(2, "0")

@@ -13,6 +13,14 @@ import Summary from "./Summary";
 import Skill from "./Skills";
 import Experience from "./Experience";
 import Education from "./Education";
+import { handleEducationLists, setLanguages } from "@/src/store/slices/educationSlice";
+import { updatePersonalInfo } from "@/src/store/slices/personalInfoSlice";
+import { upDateProjectDetails } from "@/src/store/slices/experienceSlice";
+import { setExperience, setSummary, setTechSkills } from "@/src/store/slices/summarySlice";
+import { addSkills } from "@/src/store/slices/skillSlice";
+import { CalendarDate } from "@internationalized/date";
+import { parseDate } from "@internationalized/date";
+
 type currentStepType = "Profile" | "profile summary" | "skills" | "work experience" | "education"
 const steps = [
     {
@@ -92,7 +100,18 @@ const ResumeStepsDesktop = () => {
         return false;
     }
     const saveResume = async (e:{step:number;},noChange:boolean) => {
-        let experiences = experienceSlice.experience
+        const serializeDate = (dateArr: any) => {
+            if (!dateArr || !dateArr[0]) return null;
+          
+            const d = dateArr[0];
+            return `${d.year}-${String(d.month).padStart(2, "0")}-${String(d.day).padStart(2, "0")}`;
+          };
+          
+          let experiencesToSave = experienceSlice.experience.map((e) => ({
+            ...e,
+            fromdate: serializeDate(e.fromdate),
+            toDate: serializeDate(e.toDate),
+          }));
         setShowLoader(true)
         const response = await fetch("api/resume/saveResume", {
             method: "POST",
@@ -102,7 +121,7 @@ const ResumeStepsDesktop = () => {
                     name, email, phone, role, location,
                     experience, techSkills, summary,
                     skills,
-                    experiences,
+                    experiences:experiencesToSave,
                     educations, languages
                 },
                 resumeFormat:"1"
@@ -166,7 +185,7 @@ const ResumeStepsDesktop = () => {
                             <Alert.Indicator />
                             <Alert.Title>There was an error processing your request</Alert.Title>
                         </Alert.Root>}
-                    {educations.length > 0 ? <Steps.CompletedContent>
+                    {educations.length > 0 && languages.length? <Steps.CompletedContent>
                         <Alert.Root status="success">
                             <Alert.Indicator />
                             <Alert.Title>All Done!</Alert.Title>
@@ -309,7 +328,7 @@ const ResumeStepsMobile = () => {
                         <Alert.Title>There was an error processing your request</Alert.Title>
                     </Alert.Root>}
                 {resumeSteps[activeStep] ? resumeSteps[activeStep] : <></>}
-                {educations.length > 0 ?
+                {educations.length > 0 && languages.length >0?
                     <Alert.Root status="success" mt={3}>
                         <Alert.Indicator />
                         <Alert.Title>All Done!</Alert.Title>
@@ -324,9 +343,53 @@ const ResumeStepsMobile = () => {
 }
 
 const ResumeSteps = () => {
-
+    const { userId } = useAppSelector((state) => state.globalInfo)
+    const dispatch = useAppDispatch();
     const isMobile = useBreakpointValue({ base: true, lg: false });
     console.log("isMobile=", isMobile);
+    const getResume = async() =>{
+        const response = await fetch(`/api/resume/${encodeURIComponent(userId)}/1`)
+        let data = await response.json()
+        const {educations,name,email,phone,role,experience,summary,skills,experiences,languages,techSkills} = data.content;
+        console.log("resp=",data,data.content)
+        const toCalendarArray = (val: any) => {
+            if (!val) return [];
+          
+            // ✅ string case
+            if (typeof val === "string") {
+              try {
+                return [parseDate(val)];
+              } catch {
+                return [];
+              }
+            }
+          
+            // ✅ already array
+            if (Array.isArray(val)) return val;
+          
+            return [];
+          };
+          
+          let finalExp = experiences.map((e: any) => ({
+            ...e,
+            fromdate: toCalendarArray(e.fromdate),
+            toDate: toCalendarArray(e.toDate),
+          }));
+        dispatch(handleEducationLists(educations || []))
+        dispatch(setLanguages(languages))
+        dispatch(updatePersonalInfo({key:"name",value:name}))
+        dispatch(updatePersonalInfo({key:"email",value:email}))
+        dispatch(updatePersonalInfo({key:"phone",value:phone}))
+        dispatch(updatePersonalInfo({key:"role",value:role}))
+        dispatch(setExperience(experience))
+        dispatch(setSummary(summary))
+        dispatch(addSkills(skills))
+        dispatch(upDateProjectDetails(finalExp))
+        dispatch(setTechSkills({key:"techSkills",value:techSkills}))
+    }
+    useEffect(()=>{
+        getResume();
+    },[])
     if (isMobile) {
         return <ResumeStepsMobile />
     } else {

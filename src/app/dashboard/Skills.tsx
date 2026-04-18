@@ -66,7 +66,7 @@ function SkillsInput() {
                     value={skill}
                     onChange={(e) => setSkill(e.target.value)}
                 />
-                <Button onClick={() => {dispatch(addSkills([...skills,skill]));setSkill("")}}>Add</Button>
+                <Button onClick={() => {dispatch(addSkills([...skills,skill]));setSkill("")}} disabled={skill?false:true}>Add</Button>
             </HStack>
 
             {/* Skills List */}
