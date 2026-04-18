@@ -8,6 +8,7 @@ import type { DateValue } from "@chakra-ui/react"
 import { CalendarDate } from "@internationalized/date"
 import { LuCalendar } from "react-icons/lu"
 import { useState } from "react";
+import { parseDate } from "@internationalized/date";
 
 type CheckedState = boolean | "indeterminate";
 
