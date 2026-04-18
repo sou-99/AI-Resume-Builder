@@ -1,13 +1,12 @@
 // app/api/ai/route.ts
 import OpenAI from "openai";
 
-const client = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
 export async function POST(req: Request) {
     try {
       const { prompt } = await req.json();
-  
+      const client = new OpenAI({
+        apiKey: process.env.OPENAI_API_KEY,
+      });
       const response = await client.responses.create({
         model: "gpt-4.1-mini",
           temperature: 0.7,
